@@ -2,6 +2,7 @@ var network = null;
 var layoutMethod = "hubsize";
 var nodes = [];
 var edges = [];
+var states = [];
 
 function updateGraph(data) {
     if (!!data && !!data.nodes && !!data.edges) {
@@ -68,6 +69,24 @@ function clearNodes() {
         updateGraph(data);
     });
 
+}
+
+function run() {
+    $.ajax({
+        url: '/arora-gouda/run',
+        type: 'POST'
+    }).success(function(data) {
+        console.log(data);
+        if (!!data && !!data.states) {
+            states = data.states.reverse();
+        }
+
+    });
+}
+
+function next() {
+    if (states.length > 0)
+        updateGraph(states.pop())
 }
 
 function destroy() {
