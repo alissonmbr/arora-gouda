@@ -4,17 +4,17 @@ import time
 
 nodes = {}
 k = 0
-threads = 0
+isRunning = False
 states = []
 
 def clear():
     global nodes
     global k
-    global threads
+    global isRunning
     global states
     nodes = {}
     k = 0
-    threads = 0
+    isRunning = False
     states = []
     return generate_js_graph()
 
@@ -26,17 +26,17 @@ class Node:
         self.parent_id = parent_id
 
     def __str__(self):
-        return self.node_id
+        return str(self.node_id)
 
     def __repr__(self):
-        return self.node_id
+        return str(self.node_id)
 
 def get_node_from_node_dict(node_dict):
     try:
-        nodeId = node_dict['id']
-        rootId = node_dict['root']
-        distance = node_dict['distance']
-        parent = node_dict['parent']
+        nodeId = int(node_dict['id'])
+        rootId = int(node_dict['root'])
+        distance = int(node_dict['distance'])
+        parent = int(node_dict['parent'])
         return Node(nodeId, rootId, distance, parent)
     except:
         return None
@@ -76,8 +76,8 @@ def exist_edge(fromNode, toNode):
     return toNode in nodes[fromNode] or fromNode in nodes[toNode]
 
 def add_edge(edge_dict):
-    fromNode = get_node_by_id(edge_dict['from'])
-    toNode = get_node_by_id(edge_dict['to'])
+    fromNode = get_node_by_id(int(edge_dict['from']))
+    toNode = get_node_by_id(int(edge_dict['to']))
 
     if (fromNode and toNode and not exist_edge(fromNode, toNode)):
         nodes[fromNode].append(toNode)
@@ -114,9 +114,6 @@ def generate_js_graph():
                 inserted.append(a)
 
     js = {'nodes': nodes_js, 'edges': edges_js}
-    # print nodes
-    # print k
-    # print "nodes_js", json.dumps(js)
     return js
 
 def get_label_from_node(node):
@@ -129,87 +126,54 @@ def get_label_from_node(node):
 def check_inconsistency(node):
     global states
     global nodes
-    # print "\n\n\n###### check_inconsistency"
-    # print_node(node)
 
     hasInconsistency = False
 
     a = node.root_id < node.node_id
-    b = (not node.parent_id) and ((node.root_id != node.node_id) or (node.distance != 0))
-    c = node.parent_id and exist_edge(node, get_node_by_id(node.parent_id))
+    b = (node.parent_id == None) and ((node.root_id != node.node_id) or (node.distance != 0))
+    c = (node.parent_id != None) and not exist_edge(node, get_node_by_id(node.parent_id))
     d = (node.distance >= k)
 
     if a or b or c or d:
-        # print "a or b or c or d"
-        # print_node(node)
-        # print "------------------------------"
-
         node.parent_id = None
         node.root_id = node.node_id
         node.distance = 0
         hasInconsistency = True
         states.append(generate_js_graph())
 
-        # print_node(node)
-        # print "END a or b or c or d"
     for neighbor in nodes[node]:
         if neighbor.distance < k and neighbor.node_id == node.root_id:
             if neighbor.root_id != node.root_id or neighbor.distance != node.distance - 1:
-                # print "neighbor.root_id != node.root_id or neighbor.distance != node.distance - 1"
-                # print_node
-                # print "------------------------------"
-
                 node.root_id = neighbor.root_id
                 node.distance = neighbor.distance + 1
-                
                 hasInconsistency = True                    
                 states.append(generate_js_graph())
-
-                # print_node(node)
-                # print "END neighbor.root_id != node.root_id or neighbor.distance != node.distance - 1"
         elif neighbor.distance < k and neighbor.node_id != node.root_id:
             if node.root_id < neighbor.root_id:
-                # print "node.root_id < neighbor.root_id"
-                # print_node(node)
-                # print "------------------------------"
-
                 node.parent_id = neighbor.node_id
                 node.root_id = neighbor.root_id
                 node.distance = neighbor.distance + 1
-                
                 hasInconsistency = True
                 states.append(generate_js_graph())
 
-                # print_node(node)
-                # print "END node.root_id < neighbor.root_id"
-
-    # print "######END check_inconsistency\n\n\n"
     return hasInconsistency
 
 def worker(node):
-    global threads
-    while (check_inconsistency(node)):
-        time.sleep(10)
-    # print_node(node, "antes:")
-    # check_inconsistency(node)
-    # print_node(node, "depois:")
-    threads -= 1
+    while (isRunning):
+        check_inconsistency(node)
 
 def run():
-    global threads
+    global isRunning
     global states
 
     states = []
     for node in nodes:
-        threads += 1
+        isRunning = True
         t = threading.Thread(target=worker, args=(node,))
         t.start()
 
-    while (threads != 0):
-        continue
+    time.sleep(10)
+    isRunning = False
+    time.sleep(1)
 
     return {'states': states}
-
-def print_node(node, a=""):
-    b = '%s  id:%s  parent:%s  root:%s  distance:%s  k:%s' % (a, node.node_id, node.parent_id, node.root_id, node.distance, k)
-    print b
