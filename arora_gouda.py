@@ -173,6 +173,7 @@ def check_inconsistency(node):
         node.distance = 0
         hasInconsistency = True
         states.append(generate_js_graph())
+        return True
 
     for neighbor in nodes[node]:
         if (neighbor.distance < k) and (neighbor.node_id == node.parent_id):
@@ -199,6 +200,7 @@ def check_inconsistency(node):
 def worker(node):
     while (isRunning):
         check_inconsistency(node)
+        time.sleep(1)
 
 def run():
     global isRunning
@@ -211,7 +213,7 @@ def run():
         t = threading.Thread(target=worker, args=(node,))
         t.start()
 
-    time.sleep(10)
+    time.sleep(20)
     isRunning = False
     time.sleep(1)
 

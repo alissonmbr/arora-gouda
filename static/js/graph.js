@@ -79,7 +79,6 @@ function run() {
         type: 'POST'
     }).success(function(data) {
         hideLoading();
-        console.log(data);
         if (!!data && !!data.states) {
             states = data.states;
             statesIndex = 0;
@@ -95,7 +94,6 @@ function next() {
 
     updateGraph(states[++statesIndex]);
     setStatesButtons();
-    console.log(statesIndex);
 }
 
 function previous() {
@@ -104,7 +102,6 @@ function previous() {
 
     updateGraph(states[--statesIndex]);
     setStatesButtons();
-    console.log(statesIndex);
 }
 
 function setStatesButtons() {
