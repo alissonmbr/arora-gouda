@@ -33,14 +33,27 @@ class Node:
 
 def get_node_from_node_dict(node_dict):
     try:
-        nodeId = int(node_dict['id'])
-        rootId = int(node_dict['root'])
-        distance = int(node_dict['distance'])
-        parent = int(node_dict['parent'])
+        nodeIdStr = node_dict['id']
+        rootIdStr = node_dict['root']
+        distanceStr = node_dict['distance']
+        parentStr = node_dict['parent']
+
+        if nodeIdStr == None or rootIdStr == None or distanceStr == None:
+            return None
+
+        nodeId = int(nodeIdStr)
+        rootId = int(rootIdStr)
+        distance = int(distanceStr)
+
+        if parentStr == None:
+            parent = None
+        else:
+            parent = int(parentStr)
+
         return Node(nodeId, rootId, distance, parent)
     except:
         return None
-
+ 
 def get_node_by_id(nodeId):
     for node in nodes:
         if node.node_id == nodeId:
@@ -61,7 +74,13 @@ def add_node(node_dict):
 def remove_node(nodeId):
     global nodes
     global k
-    node = get_node_by_id(nodeId['id'])
+
+    node_id_str = nodeId['id']
+    if node_id_str == None:
+        return None
+    
+    node_id = int(node_id_str)
+    node = get_node_by_id(node_id)
     if node:
         del nodes[node]
         for nod in nodes:
@@ -73,11 +92,19 @@ def remove_node(nodeId):
         return None
 
 def exist_edge(fromNode, toNode):
+    if fromNode == None or toNode == None:
+        return False
     return toNode in nodes[fromNode] or fromNode in nodes[toNode]
 
 def add_edge(edge_dict):
-    fromNode = get_node_by_id(int(edge_dict['from']))
-    toNode = get_node_by_id(int(edge_dict['to']))
+    from_str = edge_dict['from']
+    to_str = edge_dict['to']
+
+    if from_str == None or to_str == None:
+        return None
+
+    fromNode = get_node_by_id(int(from_str))
+    toNode = get_node_by_id(int(to_str))
 
     if (fromNode and toNode and not exist_edge(fromNode, toNode)):
         nodes[fromNode].append(toNode)
@@ -87,8 +114,14 @@ def add_edge(edge_dict):
         return None
 
 def remove_edge(edge_dict):
-    fromNode = get_node_by_id(edge_dict['from'])
-    toNode = get_node_by_id(edge_dict['to'])
+    from_str = edge_dict['from']
+    to_str = edge_dict['to']
+
+    if from_str == None or to_str == None:
+        return None
+
+    fromNode = get_node_by_id(int(from_str))
+    toNode = get_node_by_id(int(to_str))
 
     if (fromNode and toNode and exist_edge(fromNode, toNode)):
         nodes[fromNode].remove(toNode)
@@ -142,16 +175,21 @@ def check_inconsistency(node):
         states.append(generate_js_graph())
 
     for neighbor in nodes[node]:
-        if neighbor.distance < k and neighbor.node_id == node.root_id:
-            if neighbor.root_id != node.root_id or neighbor.distance != node.distance - 1:
+        if (neighbor.distance < k) and (neighbor.node_id == node.parent_id):
+            if (neighbor.root_id != node.root_id) or (neighbor.distance != (node.distance - 1)):
                 node.root_id = neighbor.root_id
                 node.distance = neighbor.distance + 1
                 hasInconsistency = True                    
                 states.append(generate_js_graph())
-        elif neighbor.distance < k and neighbor.node_id != node.root_id:
+        elif (neighbor.distance < k) and (neighbor.node_id != node.parent_id):
             if node.root_id < neighbor.root_id:
                 node.parent_id = neighbor.node_id
                 node.root_id = neighbor.root_id
+                node.distance = neighbor.distance + 1
+                hasInconsistency = True
+                states.append(generate_js_graph())
+            elif node.root_id == neighbor.root_id and node.distance > neighbor.distance + 1:
+                node.parent_id = neighbor.node_id
                 node.distance = neighbor.distance + 1
                 hasInconsistency = True
                 states.append(generate_js_graph())
@@ -167,6 +205,7 @@ def run():
     global states
 
     states = []
+    states.append(generate_js_graph())
     for node in nodes:
         isRunning = True
         t = threading.Thread(target=worker, args=(node,))

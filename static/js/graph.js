@@ -3,6 +3,7 @@ var layoutMethod = "hubsize";
 var nodes = [];
 var edges = [];
 var states = [];
+var statesIndex = 0;
 
 function updateGraph(data) {
     if (!!data && !!data.nodes && !!data.edges) {
@@ -72,22 +73,46 @@ function clearNodes() {
 }
 
 function run() {
+    showLoading();
     $.ajax({
         url: '/arora-gouda/run',
         type: 'POST'
     }).success(function(data) {
+        hideLoading();
         console.log(data);
         if (!!data && !!data.states) {
-            states = data.states.reverse();
+            states = data.states;
+            statesIndex = 0;
+            setStatesButtons();
         }
 
     });
 }
 
 function next() {
-    if (states.length > 0)
-        updateGraph(states.pop())
+    if (statesIndex == (states.length - 1))
+        return
+
+    updateGraph(states[++statesIndex]);
+    setStatesButtons();
+    console.log(statesIndex);
 }
+
+function previous() {
+    if (statesIndex == 0)
+        return;
+
+    updateGraph(states[--statesIndex]);
+    setStatesButtons();
+    console.log(statesIndex);
+}
+
+function setStatesButtons() {
+    var prev = statesIndex;  
+    var next = states.length - statesIndex - 1;
+    document.getElementById('prev').innerHTML = "Previous (" + prev + ")"; 
+    document.getElementById('next').innerHTML = "Next (" + next + ")";
+} 
 
 function destroy() {
     if (network !== null) {
@@ -196,14 +221,30 @@ function draw() {
     };
 
     var options = {
-        layout: {
-            hierarchical: {
-                sortMethod: layoutMethod
+        "nodes": {
+            "physics": true,
+            "shadow": {
+                "enabled": true
             }
         },
-        edges: {
-            smooth: true
+        "edges": {
+            "shadow": {
+                "enabled": true
+            }
+        },
+        "physics": {
+            "barnesHut": {
+                "avoidOverlap": 0.1
+            }
         }
     };
     network = new vis.Network(container, data, options);
+}
+
+function hideLoading() {
+    document.getElementById('loading').style.visibility = "hidden";
+}
+
+function showLoading() {
+    document.getElementById('loading').style.visibility = "visible";
 }
